@@ -1,0 +1,872 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Budtender Loyalty Leaderboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root{
+      --bg1:#09090b;
+      --bg2:#18181b;
+      --panel:rgba(255,255,255,0.08);
+      --border:rgba(255,255,255,0.10);
+      --text:#ffffff;
+      --muted:#c5c7d0;
+      --subtle:#a1a1aa;
+      --gold1:#fef3a5;
+      --gold2:#fde047;
+      --silver1:#f5f5f7;
+      --silver2:#d4d4d8;
+      --bronze1:#fce7b2;
+      --bronze2:#fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(168,85,247,0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(34,211,238,0.16), transparent 24%),
+        radial-gradient(circle at center, rgba(245,158,11,0.10), transparent 30%),
+        linear-gradient(135deg, var(--bg1), var(--bg2) 45%, #111827);
+    }
+    .container{
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 28px 24px 48px;
+    }
+    .hero-header{
+      margin-bottom: 18px;
+      border-radius: 30px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+      backdrop-filter: blur(12px);
+      padding: 26px 28px;
+    }
+    .eyebrow{
+      margin: 0 0 10px;
+      font-size: 12px;
+      letter-spacing: .30em;
+      text-transform: uppercase;
+      color: #d4d4d8;
+    }
+    h1{
+      margin: 0;
+      font-size: 54px;
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+    .subcopy{
+      margin-top: 14px;
+      max-width: 900px;
+      font-size: 17px;
+      line-height: 1.6;
+      color: #f1f5f9;
+    }
+    .subcopy strong{ color:#fff; }
+
+    .spotlight{
+      margin-bottom:18px;
+      border-radius: 30px;
+      border:1px solid rgba(253,224,71,0.18);
+      padding:18px 22px;
+      background: linear-gradient(90deg, rgba(217,70,239,0.22), rgba(245,158,11,0.18), rgba(34,211,238,0.20));
+      box-shadow: 0 22px 70px rgba(0,0,0,0.25);
+    }
+    .spotlight-flex{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:18px;
+    }
+    .small-cap{
+      font-size:12px;
+      letter-spacing:.30em;
+      text-transform:uppercase;
+      color:#e4e4e7;
+      font-weight:800;
+      margin-bottom:8px;
+    }
+    .spotlight h2{
+      margin:0;
+      font-size:38px;
+      line-height:1;
+      letter-spacing:-0.04em;
+    }
+    .spotlight p{
+      margin:8px 0 0;
+      color:#e4e4e7;
+      font-size:14px;
+    }
+    .sparkles{
+      font-size:32px;
+      display:flex;
+      gap:10px;
+      white-space:nowrap;
+    }
+
+    .podium-grid{
+      display:grid;
+      grid-template-columns: repeat(3,minmax(0,1fr));
+      gap:18px;
+      margin-bottom: 28px;
+    }
+    .podium-card{
+      position:relative;
+      overflow:hidden;
+      padding:24px;
+      border-radius: 32px;
+      border:1px solid rgba(255,255,255,0.32);
+      color:#18181b;
+      box-shadow: 0 22px 70px rgba(0,0,0,0.28);
+      min-height: 244px;
+    }
+    .podium-card::before{
+      content:"";
+      position:absolute;
+      left:0; right:0; top:0;
+      height:6px;
+      background: linear-gradient(90deg, rgba(255,255,255,.8), rgba(255,255,255,.18), transparent);
+    }
+    .podium-card .ghost{
+      position:absolute;
+      right:-18px;
+      top:-18px;
+      font-size:92px;
+      opacity:.18;
+      line-height:1;
+    }
+    .podium-card.gold{ background: linear-gradient(135deg, var(--gold1), var(--gold2)); }
+    .podium-card.silver{ background: linear-gradient(135deg, var(--silver1), var(--silver2)); }
+    .podium-card.bronze{ background: linear-gradient(135deg, var(--bronze1), var(--bronze2)); }
+    .podium-label{
+      display:inline-flex;
+      background: rgba(0,0,0,0.10);
+      padding: 9px 14px;
+      border-radius:999px;
+      font-size:12px;
+      letter-spacing:.22em;
+      text-transform:uppercase;
+      font-weight:900;
+      margin-bottom:16px;
+    }
+    .podium-rank{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:14px;
+      letter-spacing:.20em;
+      text-transform:uppercase;
+      font-weight:800;
+      color:#3f3f46;
+      margin-bottom:10px;
+    }
+    .podium-name{
+      font-size:28px;
+      line-height:1.1;
+      font-weight:900;
+      letter-spacing:-0.03em;
+    }
+    .podium-total{
+      margin-top:12px;
+      font-size:60px;
+      line-height:1;
+      font-weight:900;
+      letter-spacing:-0.05em;
+    }
+    .pill{
+      margin-top:16px;
+      display:inline-flex;
+      padding: 11px 16px;
+      border-radius:999px;
+      background: rgba(0,0,0,0.10);
+      font-size:14px;
+      font-weight:800;
+    }
+    .empty-top{
+      grid-column: 1 / -1;
+      text-align:center;
+      padding:44px 20px;
+      color:#cbd5e1;
+      border:1px dashed rgba(255,255,255,0.18);
+      border-radius: 30px;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06));
+      border:1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+      backdrop-filter: blur(12px);
+    }
+
+    .table-card{ padding: 18px 22px 22px; margin-bottom: 28px; }
+    .table-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:18px;
+      margin-bottom: 16px;
+    }
+    .table-head h3{
+      margin:0;
+      font-size: 38px;
+      letter-spacing:-0.04em;
+      color:#dbeafe;
+    }
+    .search{
+      position:relative;
+      width: 320px;
+      max-width:100%;
+    }
+    .search input{
+      width:100%;
+      height:54px;
+      padding: 0 16px 0 44px;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.18);
+      color:#fff;
+      font-size:15px;
+      outline:none;
+    }
+    .search input::placeholder{ color:#9ca3af; }
+    .search .icon{
+      position:absolute;
+      left:14px;
+      top:50%;
+      transform:translateY(-50%);
+      color:#9ca3af;
+      font-size:16px;
+    }
+    .table-wrap{
+      border-radius:22px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,0.08);
+    }
+    .thead, .trow{
+      display:grid;
+      grid-template-columns: 90px 1.5fr 1fr 140px;
+      gap:0;
+      align-items:center;
+    }
+    .thead{
+      background: linear-gradient(90deg, rgba(217,70,239,0.24), rgba(255,255,255,0.10), rgba(34,211,238,0.22));
+      color:#f4f4f5;
+      font-size:14px;
+      font-weight:800;
+      padding: 14px 16px;
+    }
+    .tbody{
+      background: rgba(0,0,0,0.16);
+    }
+    .trow{
+      padding: 16px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      transition: background .18s ease;
+    }
+    .trow:hover{ background: rgba(255,255,255,0.04); }
+    .badge-rank{
+      width:42px;
+      height:42px;
+      border-radius:999px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+      color:#111827;
+      background: linear-gradient(135deg, rgba(255,255,255,0.28), rgba(255,255,255,0.06));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.15);
+    }
+    .name{
+      font-weight:800;
+      color:#fff;
+      font-size:16px;
+    }
+    .sub{
+      color:#a1a1aa;
+      margin-top:4px;
+      font-size:14px;
+    }
+    .amount{
+      font-size:18px;
+      font-weight:900;
+      color:#fff;
+    }
+    .line-items{
+      text-align:right;
+      color:#d4d4d8;
+      font-weight:700;
+    }
+    .table-empty{
+      padding: 36px 16px;
+      text-align:center;
+      color:#a1a1aa;
+      background: rgba(0,0,0,0.18);
+    }
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      margin-top: 18px;
+    }
+    .btn{
+      height:48px;
+      padding:0 16px;
+      border-radius:18px;
+      border:0;
+      font-size:14px;
+      font-weight:800;
+      cursor:pointer;
+      transition: .18s ease;
+    }
+    .btn:hover{ transform: translateY(-1px); }
+    .btn.primary{
+      background:#fff;
+      color:#111827;
+    }
+    .btn.secondary{
+      background: transparent;
+      color:#fff;
+      border:1px solid rgba(255,255,255,0.14);
+    }
+
+    .bottom-grid{
+      display:grid;
+      grid-template-columns: 0.8fr 1.2fr;
+      gap:24px;
+    }
+    .side{
+      padding: 24px;
+    }
+    .side h4{
+      margin: 0 0 16px;
+      font-size: 30px;
+      letter-spacing: -0.03em;
+    }
+    .upload-box{
+      border:1px dashed rgba(255,255,255,0.18);
+      border-radius:22px;
+      padding: 28px 18px;
+      text-align:center;
+      background: rgba(0,0,0,0.18);
+      cursor:pointer;
+      transition: .18s ease;
+      display:block;
+    }
+    .upload-box:hover{
+      background: rgba(0,0,0,0.28);
+      border-color: rgba(255,255,255,0.35);
+      transform: translateY(-1px);
+    }
+    .upload-icon{ font-size: 34px; margin-bottom: 10px; }
+    .mini-panel{
+      margin-top:14px;
+      border-radius:20px;
+      background: rgba(0,0,0,0.20);
+      border:1px solid rgba(255,255,255,0.08);
+      padding:16px;
+      color:#d4d4d8;
+      font-size:14px;
+      line-height:1.5;
+    }
+    .mini-title{
+      color:#fff;
+      font-weight:700;
+      margin-bottom:8px;
+    }
+    .status{
+      margin-top:14px;
+      border-radius:18px;
+      padding:14px 16px;
+      white-space:pre-wrap;
+      font-size:14px;
+      display:none;
+    }
+    .status.ok{
+      display:block;
+      color:#dcfce7;
+      background: rgba(34,197,94,0.12);
+      border:1px solid rgba(74,222,128,0.30);
+    }
+    .status.error{
+      display:block;
+      color:#fecaca;
+      background: rgba(239,68,68,0.14);
+      border:1px solid rgba(248,113,113,0.30);
+    }
+    .stats-card{
+      padding: 24px;
+    }
+    .stats-card h4{
+      margin:0 0 18px;
+      font-size: 30px;
+      letter-spacing:-0.03em;
+    }
+    .stats{
+      display:grid;
+      grid-template-columns: repeat(3,minmax(0,1fr));
+      gap:16px;
+    }
+    .stat{
+      border-radius: 22px;
+      background: rgba(0,0,0,0.20);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 18px;
+    }
+    .stat-label{
+      color:#d4d4d8;
+      font-size:14px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      margin-bottom:8px;
+    }
+    .stat-value{
+      font-size:42px;
+      font-weight:800;
+      letter-spacing:-0.03em;
+    }
+    .stat-sub{
+      margin-top:4px;
+      font-size:12px;
+      color:#a1a1aa;
+    }
+
+    input[type=file]{ display:none; }
+
+    @media (max-width: 1100px){
+      .bottom-grid{ grid-template-columns: 1fr; }
+    }
+    @media (max-width: 980px){
+      .podium-grid{ grid-template-columns: 1fr; }
+      .stats{ grid-template-columns: 1fr; }
+      .table-head{ flex-direction:column; align-items:stretch; }
+      .spotlight-flex{ flex-direction:column; align-items:flex-start; }
+      h1{ font-size: 40px; }
+      .spotlight h2{ font-size: 30px; }
+    }
+    @media (max-width: 760px){
+      .thead, .trow{ grid-template-columns: 76px 1fr; }
+      .thead > :nth-child(3), .thead > :nth-child(4),
+      .trow > :nth-child(3), .trow > :nth-child(4){ margin-left: 76px; padding-top: 8px; }
+      .podium-total{ font-size: 46px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="hero-header">
+      <div class="eyebrow">The Travel Agency</div>
+      <h1>Budtender Loyalty Leaderboard</h1>
+      <div class="subcopy">
+        Upload a discount detail report and this page will total every budtender’s qualifying loyalty sales using only
+        <strong>Unit Price</strong>, <strong>Discount Name</strong>, and <strong>Budtender Name</strong>.
+      </div>
+    </section>
+
+    <section class="spotlight">
+      <div class="spotlight-flex">
+        <div>
+          <div class="small-cap">Top 3 Spotlight</div>
+          <h2>Today’s Loyalty Leaders</h2>
+          <p>Big board energy. Your top budtenders show up here first.</p>
+        </div>
+        <div class="sparkles"><span>✨</span><span>🔥</span><span>🏆</span><span>💨</span></div>
+      </div>
+    </section>
+
+    <section class="podium-grid" id="topThree"></section>
+
+    <section class="card table-card">
+      <div class="table-head">
+        <h3>🏁 Full leaderboard</h3>
+        <div class="search">
+          <span class="icon">🔎</span>
+          <input id="searchInput" placeholder="Search budtender" />
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="thead">
+          <div>Rank</div>
+          <div>Budtender</div>
+          <div>Loyalty sales</div>
+          <div style="text-align:right;">Line items</div>
+        </div>
+        <div class="tbody" id="tableBody"></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="resetSearch">Reset search</button>
+        <button class="btn secondary" id="clearTotals">Clear all totals</button>
+      </div>
+    </section>
+
+    <section class="bottom-grid">
+      <aside class="card side">
+        <h4>Upload report</h4>
+        <label class="upload-box" for="fileInput">
+          <div class="upload-icon">⤴️</div>
+          <div style="font-weight:800; font-size:16px;">Choose .xlsx report</div>
+          <div style="font-size:14px; color:#d4d4d8; margin-top:6px;">Reads the first sheet in the workbook</div>
+        </label>
+        <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" />
+
+        <div class="mini-panel">
+          <div class="mini-title">Current file</div>
+          <div id="currentFile">No report uploaded yet</div>
+        </div>
+
+        <div class="mini-panel">
+          <div class="mini-title">Logic used</div>
+          <div>Includes discount names containing loyalty, reward, or travel club.</div>
+          <div>Excludes Travel Club Frequent Flyer.</div>
+          <div>Excludes any budtender name containing DTBK.</div>
+          <div>Adds Unit Price totals by Budtender Name.</div>
+          <div>Each new uploaded report adds onto the saved running totals.</div>
+        </div>
+
+        <div id="status" class="status"></div>
+      </aside>
+
+      <section class="card stats-card">
+        <h4>Totals</h4>
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-label">💵 <span>Total qualifying sales</span></div>
+            <div class="stat-value" id="totalSales">$0.00</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">🧾 <span>Qualifying line items</span></div>
+            <div class="stat-value" id="totalRows">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">👥 <span>Budtenders on board</span></div>
+            <div class="stat-value" id="totalBudtenders">0</div>
+            <div class="stat-sub" id="reportCount">0 reports uploaded</div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "tta-loyalty-pretty-bottom-layout-v1";
+    const emptyState = {
+      leaderboard: {},
+      totalLoyaltySales: 0,
+      qualifyingRows: 0,
+      reportsUploaded: 0,
+      currentFile: "No report uploaded yet"
+    };
+
+    let state = loadState();
+
+    function clone(obj){
+      return JSON.parse(JSON.stringify(obj));
+    }
+
+    function loadState(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(!raw) return clone(emptyState);
+        const parsed = JSON.parse(raw);
+        return { ...clone(emptyState), ...parsed, leaderboard: parsed.leaderboard || {} };
+      }catch{
+        return clone(emptyState);
+      }
+    }
+
+    function saveState(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function normalize(value){
+      return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .replace(/[_-]+/g, " ");
+    }
+
+    function money(value){
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 2
+      }).format(value || 0);
+    }
+
+    function qualifiesDiscount(name){
+      const discount = normalize(name);
+      if(!discount) return false;
+      const included = discount.includes("loyalty") || discount.includes("reward") || discount.includes("travel club");
+      const excluded = discount.includes("travel club frequent flyer");
+      return included && !excluded;
+    }
+
+    function parseAmount(value){
+      if(typeof value === "number") return value;
+      const cleaned = String(value ?? "").replace(/[$,]/g, "").trim();
+      const num = Number(cleaned);
+      return Number.isFinite(num) ? num : 0;
+    }
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function showStatus(message, kind){
+      const el = document.getElementById("status");
+      el.className = "status " + kind;
+      el.textContent = message;
+    }
+
+    function clearStatus(){
+      const el = document.getElementById("status");
+      el.className = "status";
+      el.textContent = "";
+    }
+
+    function headerLooksRight(row){
+      const cells = (row || []).map(v => normalize(v));
+      return cells.includes("unit price") && cells.includes("discount name") && cells.includes("budtender name");
+    }
+
+    function worksheetToRows(ws){
+      const matrix = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false });
+      if(!matrix.length) return { rows: [], headers: [], headerRowIndex: -1 };
+
+      let headerRowIndex = matrix.findIndex(headerLooksRight);
+      if(headerRowIndex === -1) headerRowIndex = 0;
+
+      const headers = matrix[headerRowIndex].map(h => String(h || "").trim());
+      const rows = [];
+
+      for(let i = headerRowIndex + 1; i < matrix.length; i++){
+        const arr = matrix[i] || [];
+        const hasData = arr.some(cell => String(cell || "").trim() !== "");
+        if(!hasData) continue;
+
+        const obj = {};
+        for(let j = 0; j < headers.length; j++){
+          let key = headers[j];
+          if(!key) key = `_EMPTY_${j}`;
+          obj[key] = arr[j] ?? "";
+        }
+        rows.push(obj);
+      }
+      return { rows, headers, headerRowIndex };
+    }
+
+    function getCell(row, aliases){
+      const entries = Object.entries(row || {});
+      for(const [key, value] of entries){
+        const nk = normalize(key);
+        if(aliases.some(alias => nk === normalize(alias))) return value;
+      }
+      return "";
+    }
+
+    function getMappedRow(row){
+      return {
+        unitPrice: getCell(row, ["Unit Price", "UnitPrice", "Unit price", "Price", "Unit_Price"]),
+        discountName: getCell(row, ["Discount Name", "Discount", "DiscountName", "Disc Name"]),
+        budtenderName: getCell(row, ["Budtender Name", "Budtender", "BudtenderName", "Employee Name", "Responsible for Sale"])
+      };
+    }
+
+    async function parseRowsFromFile(file){
+      if(!window.XLSX){
+        throw new Error("The Excel parser did not load. Be online when opening this file, then refresh and try again.");
+      }
+
+      const ext = file.name.toLowerCase().split(".").pop();
+
+      if(ext === "csv"){
+        const text = await file.text();
+        const wb = XLSX.read(text, { type: "string" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        return worksheetToRows(ws);
+      }
+
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      return worksheetToRows(ws);
+    }
+
+    async function handleFile(file){
+      clearStatus();
+      const parsed = await parseRowsFromFile(file);
+      const rows = parsed.rows;
+
+      if(!rows.length){
+        throw new Error("That sheet looks empty.");
+      }
+
+      let seenRelevantColumns = false;
+      let qualifyingRows = 0;
+      let qualifyingSales = 0;
+
+      for(const row of rows){
+        const mapped = getMappedRow(row);
+        const unitPrice = parseAmount(mapped.unitPrice);
+        const discountName = mapped.discountName;
+        const budtenderName = String(mapped.budtenderName || "").trim();
+
+        if(mapped.unitPrice !== "" || discountName !== "" || budtenderName !== ""){
+          seenRelevantColumns = true;
+        }
+
+        if(!qualifiesDiscount(discountName)) continue;
+        if(!budtenderName) continue;
+        if(normalize(budtenderName).includes("dtbk")) continue;
+
+        qualifyingRows += 1;
+        qualifyingSales += unitPrice;
+
+        if(!state.leaderboard[budtenderName]){
+          state.leaderboard[budtenderName] = { total: 0, orders: 0 };
+        }
+        state.leaderboard[budtenderName].total += unitPrice;
+        state.leaderboard[budtenderName].orders += 1;
+      }
+
+      if(!seenRelevantColumns){
+        throw new Error(
+          "I could read the file, but I could not match the needed columns.\n\n" +
+          "Detected header row: " + (parsed.headerRowIndex + 1) + "\n" +
+          "Found:\n" + (parsed.headers.length ? parsed.headers.join(", ") : "none")
+        );
+      }
+
+      state.totalLoyaltySales += qualifyingSales;
+      state.qualifyingRows += qualifyingRows;
+      state.reportsUploaded += 1;
+      state.currentFile = file.name;
+      saveState();
+      render();
+
+      showStatus(
+        "Added report: " + file.name + "\n" +
+        "Detected header row: " + (parsed.headerRowIndex + 1) + "\n" +
+        "Qualifying rows added: " + qualifyingRows + "\n" +
+        "Qualifying sales added: " + money(qualifyingSales),
+        "ok"
+      );
+    }
+
+    function getFullSortedLeaderboard(){
+      return Object.entries(state.leaderboard)
+        .map(([name, value]) => ({ name, total: value.total || 0, orders: value.orders || 0 }))
+        .filter(item => !normalize(item.name).includes("dtbk"))
+        .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
+        .map((item, index) => ({ ...item, rank: index + 1 }));
+    }
+
+    function getFilteredLeaderboard(){
+      const search = normalize(document.getElementById("searchInput").value);
+      const full = getFullSortedLeaderboard();
+      if(!search) return full;
+      return full.filter(item => normalize(item.name).includes(search));
+    }
+
+    function renderTopThree(fullSorted){
+      const top = fullSorted.slice(0, 3);
+      const holder = document.getElementById("topThree");
+
+      if(!top.length){
+        holder.innerHTML = '<div class="empty-top">Upload your first report and the leaderboard will populate automatically.</div>';
+        return;
+      }
+
+      const styles = ["gold", "silver", "bronze"];
+      const labels = ["Champion", "Runner-Up", "Third Place"];
+      const icons = ["👑", "🥈", "🥉"];
+
+      holder.innerHTML = top.map((item, index) => `
+        <article class="podium-card ${styles[index]}">
+          <div class="ghost">${icons[index]}</div>
+          <div class="podium-label">${labels[index]}</div>
+          <div class="podium-rank">🏅 Rank #${item.rank}</div>
+          <div class="podium-name">${escapeHtml(item.name)}</div>
+          <div class="podium-total">${money(item.total)}</div>
+          <div class="pill">${item.orders} qualifying line items</div>
+        </article>
+      `).join("");
+    }
+
+    function renderTable(sorted){
+      const holder = document.getElementById("tableBody");
+      if(!sorted.length){
+        holder.innerHTML = `<div class="table-empty">${Object.keys(state.leaderboard).length ? "No budtenders matched that search." : "Upload a report to start the leaderboard."}</div>`;
+        return;
+      }
+
+      holder.innerHTML = sorted.map(item => `
+        <div class="trow">
+          <div><span class="badge-rank">${item.rank}</span></div>
+          <div>
+            <div class="name">${escapeHtml(item.name)}</div>
+            <div class="sub">Qualifying discount sales</div>
+          </div>
+          <div class="amount">${money(item.total)}</div>
+          <div class="line-items">${item.orders}</div>
+        </div>
+      `).join("");
+    }
+
+    function render(){
+      document.getElementById("totalSales").textContent = money(state.totalLoyaltySales);
+      document.getElementById("totalRows").textContent = String(state.qualifyingRows);
+      document.getElementById("currentFile").textContent = state.currentFile || "No report uploaded yet";
+      document.getElementById("reportCount").textContent = `${state.reportsUploaded || 0} reports uploaded`;
+
+      const fullSorted = getFullSortedLeaderboard();
+      const filtered = getFilteredLeaderboard();
+      document.getElementById("totalBudtenders").textContent = String(fullSorted.length);
+
+      renderTopThree(fullSorted);
+      renderTable(filtered);
+    }
+
+    document.getElementById("fileInput").addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+      try{
+        await handleFile(file);
+      }catch(err){
+        showStatus(err && err.message ? err.message : "Could not read that file.", "error");
+      }
+      e.target.value = "";
+    });
+
+    document.getElementById("searchInput").addEventListener("input", render);
+    document.getElementById("resetSearch").addEventListener("click", () => {
+      document.getElementById("searchInput").value = "";
+      render();
+    });
+    document.getElementById("clearTotals").addEventListener("click", () => {
+      localStorage.removeItem(STORAGE_KEY);
+      state = clone(emptyState);
+      clearStatus();
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
